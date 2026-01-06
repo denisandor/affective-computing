@@ -1,0 +1,20 @@
+data_source:
+  path: "data/IEMOCAP"
+
+dataset:
+  name: "IEMOCAP_full_release"
+
+dataset_specific:
+  IEMOCAP_full_release:
+    preprocessed_dir: "Preprocessed"
+    emotions: ["ang", "fru", "neu", "sad", "exc", "hap"]
+
+dataloader:
+  batch_size: 32
+  num_workers: 4
+
+models:
+  save_location: "saved_models"
+
+plots:
+  save_location: "pictures"
