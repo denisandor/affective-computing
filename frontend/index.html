@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emotion-Aware Music Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border: 1px solid #ccc;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .modality-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .modality-btn {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #333;
+            background: white;
+            color: #333;
+            cursor: pointer;
+            font-size: 1em;
+        }
+
+        .modality-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .modality-btn.active {
+            background: #4a90e2;
+            color: white;
+            border-color: #4a90e2;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-label {
+            display: block;
+            padding: 12px;
+            border: 1px solid #999;
+            text-align: center;
+            cursor: pointer;
+            color: #333;
+            background: #f9f9f9;
+        }
+
+        .file-label:hover {
+            background: #e0e0e0;
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .record-btn {
+            width: 100%;
+            padding: 12px;
+            background: #4a90e2;
+            color: white;
+            border: none;
+            font-size: 1em;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .record-btn:hover:not(:disabled) {
+            background: #357abd;
+        }
+
+        .record-btn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .record-btn.recording {
+            background: #d32f2f;
+        }
+
+        .video-preview {
+            width: 100%;
+            max-width: 400px;
+            border: 1px solid #ccc;
+            margin: 20px auto;
+            display: none;
+        }
+
+        .video-preview.active {
+            display: block;
+        }
+
+        .results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f0f0;
+            border: 1px solid #ccc;
+            display: none;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .emotion-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .emotion-label {
+            font-size: 2em;
+            font-weight: bold;
+            color: #4a90e2;
+            margin-bottom: 10px;
+        }
+
+        .confidence {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .playlist {
+            margin-top: 20px;
+        }
+
+        .playlist-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .track-item {
+            padding: 10px;
+            background: white;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+
+        .track-title {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .track-artist {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #4a90e2;
+            display: none;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border: 1px solid #ef5350;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .probabilities {
+            margin-top: 15px;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .prob-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .prob-label {
+            width: 80px;
+        }
+
+        .prob-value {
+            flex: 1;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            margin: 0 10px;
+            overflow: hidden;
+        }
+
+        .prob-fill {
+            height: 100%;
+            background: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Emotion-Aware Music Player</h1>
+        <p class="subtitle">Detect your emotion using voice and facial expressions</p>
+
+        <!-- Video Preview -->
+        <video id="videoPreview" class="video-preview" autoplay playsinline></video>
+
+        <!-- Record Button -->
+        <button class="record-btn" id="recordBtn">Start Recording Voice & Face</button>
+
+        <!-- Loading -->
+        <div class="loading" id="loading">Processing your emotion...</div>
+
+        <!-- Error -->
+        <div class="error" id="error"></div>
+
+        <!-- Results -->
+        <div class="results" id="results">
+            <div class="emotion-display">
+                <div class="emotion-label" id="emotionLabel">-</div>
+                <div class="confidence" id="confidence">Confidence: -</div>
+            </div>
+
+            <div class="probabilities" id="probabilities"></div>
+
+            <div class="playlist">
+                <div class="playlist-title">Recommended Music:</div>
+                <div id="playlist"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        let mediaStream = null;
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+
+        // Convert WebM/audio blob to WAV format
+        async function convertToWav(audioBlob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    audioContext.decodeAudioData(e.target.result)
+                        .then(audioBuffer => {
+                            // Convert AudioBuffer to WAV
+                            const wav = audioBufferToWav(audioBuffer);
+                            const wavBlob = new Blob([wav], { type: 'audio/wav' });
+                            resolve(wavBlob);
+                        })
+                        .catch(reject);
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(audioBlob);
+            });
+        }
+
+        // Convert AudioBuffer to WAV format
+        function audioBufferToWav(buffer) {
+            const length = buffer.length;
+            const sampleRate = buffer.sampleRate;
+            const arrayBuffer = new ArrayBuffer(44 + length * 2);
+            const view = new DataView(arrayBuffer);
+            const channels = buffer.numberOfChannels;
+            let offset = 0;
+            let pos = 0;
+
+            // WAV header
+            const setUint16 = (data) => {
+                view.setUint16(pos, data, true);
+                pos += 2;
+            };
+            const setUint32 = (data) => {
+                view.setUint32(pos, data, true);
+                pos += 4;
+            };
+
+            // RIFF identifier
+            setUint32(0x46464952); // "RIFF"
+            setUint32(length * 2 + 36); // File length
+            setUint32(0x45564157); // "WAVE"
+
+            // fmt chunk
+            setUint32(0x20746d66); // "fmt "
+            setUint32(16); // Chunk size
+            setUint16(1); // Audio format (1 = PCM)
+            setUint16(channels); // Number of channels
+            setUint32(sampleRate); // Sample rate
+            setUint32(sampleRate * channels * 2); // Byte rate
+            setUint16(channels * 2); // Block align
+            setUint16(16); // Bits per sample
+
+            // data chunk
+            setUint32(0x61746164); // "data"
+            setUint32(length * 2); // Data size
+
+            // Convert float samples to 16-bit PCM
+            const channelData = [];
+            for (let i = 0; i < channels; i++) {
+                channelData.push(buffer.getChannelData(i));
+            }
+
+            for (let i = 0; i < length; i++) {
+                for (let channel = 0; channel < channels; channel++) {
+                    let sample = Math.max(-1, Math.min(1, channelData[channel][i]));
+                    sample = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                    view.setInt16(pos, sample, true);
+                    pos += 2;
+                }
+            }
+
+            return arrayBuffer;
+        }
+
+        // Record button handler - captures both audio and video simultaneously
+        document.getElementById('recordBtn').addEventListener('click', async () => {
+            const recordBtn = document.getElementById('recordBtn');
+            const video = document.getElementById('videoPreview');
+            
+            if (!isRecording) {
+                // Start recording both audio and video
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                        audio: true, 
+                        video: true 
+                    });
+                    mediaStream = stream;
+                    recordedChunks = [];
+                    
+                    // Show video preview (mute audio to prevent feedback)
+                    video.srcObject = stream;
+                    video.muted = true;  // Prevent audio feedback
+                    video.classList.add('active');
+                    
+                    // Setup audio recorder
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data.size > 0) {
+                            recordedChunks.push(e.data);
+                        }
+                    };
+                    
+                    mediaRecorder.onstop = async () => {
+                        // Capture frame from video
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvas.getContext('2d').drawImage(video, 0, 0);
+                        
+                        // Convert audio to WAV
+                        const audioBlob = new Blob(recordedChunks, { type: 'audio/webm' });
+                        const wavBlob = await convertToWav(audioBlob);
+                        
+                        // Get image blob
+                        const imageBlob = await new Promise(resolve => {
+                            canvas.toBlob(resolve, 'image/jpeg');
+                        });
+                        
+                        // Process both files
+                        await processBothFiles(wavBlob, imageBlob);
+                        
+                        // Cleanup
+                        mediaStream.getTracks().forEach(track => track.stop());
+                        mediaStream = null;
+                        video.classList.remove('active');
+                    };
+                    
+                    // Start recording
+                    mediaRecorder.start(100);
+                    isRecording = true;
+                    recordBtn.textContent = 'Stop Recording';
+                    recordBtn.classList.add('recording');
+                } catch (error) {
+                    showError('Camera/microphone access denied. Please allow access to both.');
+                }
+            } else {
+                // Stop recording
+                mediaRecorder.stop();
+                isRecording = false;
+                recordBtn.textContent = 'Start Recording Voice & Face';
+                recordBtn.classList.remove('recording');
+            }
+        });
+
+        async function processBothFiles(audioBlob, imageBlob) {
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+            
+            loading.classList.add('show');
+            results.classList.remove('show');
+            error.classList.remove('show');
+            
+            try {
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.wav');
+                formData.append('image', imageBlob, 'photo.jpg');
+                
+                // Detect emotion using fusion model
+                const detectResponse = await fetch(`${API_URL}/api/detect-emotion`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!detectResponse.ok) {
+                    const errorData = await detectResponse.json().catch(() => ({ detail: 'Unknown error' }));
+                    throw new Error(errorData.detail || 'Emotion detection failed');
+                }
+                
+                const emotionData = await detectResponse.json();
+                
+                // Get recommendations
+                const recResponse = await fetch(`${API_URL}/api/recommend-music?emotion=${emotionData.emotion}`);
+                const recData = await recResponse.json();
+                
+                // Display results
+                displayResults(emotionData, recData);
+                
+            } catch (err) {
+                showError(`Error: ${err.message}`);
+            } finally {
+                loading.classList.remove('show');
+            }
+        }
+
+        function displayResults(emotionData, recData) {
+            const results = document.getElementById('results');
+            const emotionLabel = document.getElementById('emotionLabel');
+            const confidence = document.getElementById('confidence');
+            const probabilities = document.getElementById('probabilities');
+            const playlist = document.getElementById('playlist');
+            
+            // Display emotion
+            emotionLabel.textContent = emotionData.emotion.toUpperCase();
+            confidence.textContent = `Confidence: ${(emotionData.confidence * 100).toFixed(1)}%`;
+            
+            // Display probabilities
+            if (emotionData.all_probabilities) {
+                let probHtml = '<div style="margin-top: 10px;"><strong>All Emotions:</strong></div>';
+                for (const [emotion, prob] of Object.entries(emotionData.all_probabilities)) {
+                    const width = (prob * 100).toFixed(1);
+                    probHtml += `
+                        <div class="prob-bar">
+                            <div class="prob-label">${emotion}:</div>
+                            <div class="prob-value">
+                                <div class="prob-fill" style="width: ${width}%"></div>
+                            </div>
+                            <div>${width}%</div>
+                        </div>
+                    `;
+                }
+                probabilities.innerHTML = probHtml;
+            }
+            
+            // Display playlist
+            if (recData.playlist && recData.playlist.length > 0) {
+                playlist.innerHTML = recData.playlist.map(track => `
+                    <div class="track-item">
+                        <div class="track-title">${track.title || 'Unknown'}</div>
+                        <div class="track-artist">${track.artist || 'Unknown Artist'}</div>
+                    </div>
+                `).join('');
+            } else {
+                playlist.innerHTML = '<div style="color: #666;">No recommendations available</div>';
+            }
+            
+            results.classList.add('show');
+        }
+
+        function showError(message) {
+            const error = document.getElementById('error');
+            error.textContent = message;
+            error.classList.add('show');
+        }
+    </script>
+</body>
+</html>
+

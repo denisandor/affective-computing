@@ -7,6 +7,7 @@ from torch import nn
 from core.config import CONFIG, device
 from scripts.get_dataloaders import get_dataloader
 
+from typing import Optional
 from audio.wav2vec2 import Wav2Vec2
 from audio.trainer import AudioTrainer
 
@@ -61,7 +62,7 @@ class TrainerOps:
     @staticmethod
     def create_or_load_fusion_trainer(
             audio_model: nn.Module,
-            checkpoint_name: str | None = None,
+            checkpoint_name: Optional[str] = None,
             load_state_dict: bool = False,
             num_epochs: int = 5,
             learning_rate: float = 1e-4,

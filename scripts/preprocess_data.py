@@ -78,7 +78,7 @@ def process_facial_data_to_pickle(input_filename: str, output_filename: str) -> 
 def preprocess_pipeline(audio_extractor=None):
     raw_file = "iemocap_raw.pkl"
     audio_file = "w2v2_audio_face.pkl"
-    final_file = "w2v2_text_face_audio.pkl"
+    final_file = "w2v2_text_face.pkl"  # Changed to match dataloader expectation
 
     process_raw_data_to_pickle(raw_file)
 

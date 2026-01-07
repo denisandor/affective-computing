@@ -50,7 +50,10 @@ class FacialEmotionNet(nn.Module):
     ):
         super().__init__()
 
-        resnet = models.resnet18(pretrained=pretrained)
+        if pretrained:
+            resnet = models.resnet18(weights='IMAGENET1K_V1')
+        else:
+            resnet = models.resnet18(weights=None)
 
         self.backbone = nn.Sequential(*list(resnet.children())[:-2])
         self.feature_dim = 512
